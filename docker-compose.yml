@@ -1,0 +1,52 @@
+version: '3.3'
+
+services:
+
+  backend:
+    image: golang:1.21
+    volumes: 
+      - ./:/WeScore/
+    working_dir: /WeScore/services/backend
+    command: ["go", "run", "main.go"]
+    tty: true
+    ports:
+      - "8080:8080"
+    depends_on: 
+      - db
+
+  frontend:
+    image: node:18-alpine
+    volumes:
+      - ./:/WeScore/
+    working_dir: /WeScore/services/frontend/wescore
+    command: sh start.sh
+    tty: true
+    ports: 
+      - "3000:3000"
+
+  db:
+    image: postgres:alpine3.18
+    volumes:
+      - database-data:/var/postgresql/data/
+    ports:
+      - "5432:5432"
+    env_file:
+      - config/database.env
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: wescore-admin@qartks.com
+      PGADMIN_DEFAULT_PASSWORD: wescore
+    volumes: 
+      - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - "8888:80"
+    depends_on:
+      - db
+    restart: always
+  
+volumes: 
+  database-data:
+  pgadmin-data:
