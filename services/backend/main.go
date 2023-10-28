@@ -44,5 +44,5 @@ func main() {
 
 	r.GET("/metrics", prometheusHandler())
 
-	r.Run("0.0.0.0:3333")
+	r.Run("0.0.0.0:9091")
 }

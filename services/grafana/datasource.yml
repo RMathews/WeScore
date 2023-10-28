@@ -7,6 +7,11 @@ datasources:
   isDefault: true
   access: proxy
   editable: true
+- name: Go Server
+  type: prometheus
+  url: http://backend:9091
+  access: proxy
+  editable: true
 - name: Postgres
   type: postgres
   url: db:5432
