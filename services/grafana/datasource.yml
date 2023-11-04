@@ -4,6 +4,12 @@ datasources:
 - name: Prometheus
   type: prometheus
   url: http://prometheus:9090 
+  isDefault: false
+  access: proxy
+  editable: true
+- name: Go Backend
+  type: prometheus
+  url: http://backend:8080 
   isDefault: true
   access: proxy
   editable: true
