@@ -4,28 +4,41 @@ services:
 
   backend:
     image: golang:1.21
+    container_name: backend
     volumes: 
       - ./:/WeScore/
     working_dir: /WeScore/services/backend
     command: ["go", "run", "main.go"]
     tty: true
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
     ports:
       - "8080:8080"
     depends_on: 
       - postgres
+    networks:
+      - app
 
   frontend:
     image: node:18-alpine
+    container_name: frontend
     volumes:
       - ./:/WeScore/
     working_dir: /WeScore/services/frontend/wescore
     command: sh start.sh
     tty: true
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
     ports: 
       - "3030:3000"
+    networks:
+      - app
 
   postgres:
     image: postgres:alpine3.18
+    container_name: postgres
     volumes:
       - database-data:/var/postgresql/data/
     ports:
@@ -33,6 +46,11 @@ services:
     env_file:
       - config/database.env
     restart: always
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    networks:
+      - app
 
   pgadmin:
     container_name: pgadmin
@@ -47,13 +65,21 @@ services:
     depends_on:
       - postgres
     restart: always
+    networks:
+      - app
 
   redis: 
     image: redis:alpine
+    container_name: redis
     volumes: 
       - redis-data:/data
     ports: 
       - "6379:6379"
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    networks:
+      - app
 
   prometheus:
     image: prom/prometheus
@@ -66,6 +92,8 @@ services:
     volumes:
       - ./services/prometheus:/etc/prometheus
       - prom-data:/prometheus
+    networks:
+      - app
 
   grafana:
     image: grafana/grafana
@@ -74,13 +102,57 @@ services:
       - 3000:3000
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=grafana
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
     volumes:
       - ./services/grafana:/etc/grafana/provisioning/datasources
+    networks:
+      - app
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: always
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki-data:/loki/data
+    networks:
+      - app
+  
+  nginx-app:
+    container_name: nginx-app
+    image: nginx
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - 8081:80
+    networks:
+      - app
+
+  promtail:
+    image:  grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./services/promtail/promtail.yml:/etc/promtail/docker-config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/docker-config.yaml
+    depends_on:
+      - loki
+    networks:
+      - app
 
 volumes: 
   database-data:
   pgadmin-data:
   redis-data:
   prom-data:
+  loki-data:
+
+networks:
+  app:
+    name: app
