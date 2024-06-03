@@ -8,7 +8,7 @@ services:
     volumes: 
       - ./:/WeScore/
     working_dir: /WeScore/services/backend
-    command: ["go", "run", "main.go"]
+    command: make run
     tty: true
     labels:
       logging: "promtail"
